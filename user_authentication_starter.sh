@@ -28,7 +28,7 @@ hash_password() {
 }
 
 check_existing_username() {
-    username=$1
+    local username=$1
     ## verify if a username is already included in the credentials file
     while IFS=: read -r user hash salt role logged; do
         if [ $user = $username ]; then
@@ -46,9 +46,9 @@ register_credentials() {
     # arg3 is the fullname of the user
     # arg4 (optional) is the role. Defaults to "normal"
 
-    username=$1
-    password=$2
-    fullname=$3
+    local username=$1
+    local password=$2
+    local fullname=$3
 
     ## call the function to check if the username exists
     check_existing_username $username
@@ -61,9 +61,9 @@ register_credentials() {
 
     ## retrieve the role. Defaults to "normal" if the 4th argument is not passed
     if [ -z "$4" ]; then
-        role='normal'
+        local role='normal'
     else
-        role=$4
+        local role=$4
     fi
 
     ## check if the role is valid. Should be either normal, salesperson, or admin
@@ -88,8 +88,8 @@ verify_credentials() {
     clear
     ## arg1 is username
     ## arg2 is password
-    username=$1
-    password=$2
+    local username=$1
+    local password=$2
     ## retrieve the stored hash, and the salt from the credentials file
     # if there is no line, then return 1 and output "Invalid username"
     check_existing_username $username
@@ -119,7 +119,7 @@ verify_credentials() {
 }
 
 login() {
-    user=$1
+    local user=$1
     while IFS=: read -r username hash salt fullname role logged; do
         if [[ $user = $username ]]; then
             search_string="$username:$hash:$salt:$fullname:$role:$logged"
@@ -131,10 +131,8 @@ login() {
     done <$credentials_file
 }
 
-
 log_out() {
-    user=$(cat "$logged_in_file")
-    echo $user
+    local user=$(cat "$logged_in_file")
     #TODO: check that the .logged_in file is not empty
     # if the file exists and is not empty, read its content to retrieve the username
     # of the currently logged in user
@@ -150,6 +148,10 @@ log_out() {
             rm $logged_in_file
         fi
     done <$credentials_file
+
+    clear
+
+    echo "You have successfully logged out....!"
     return 0
 }
 
@@ -166,10 +168,12 @@ menu() {
 }
 
 logged_in_menu() {
+    get_user
+    get_role
+
     echo "You are logged in as ${username}"
 
-    if [[ $role = 'admin' ]]
-    then
+    if [[ $role = 'admin' ]]; then
         echo "2. Create account"
     fi
 
@@ -179,6 +183,18 @@ logged_in_menu() {
     read -p "Select an option: " option
 }
 
+get_user() {
+    username=$(cat "$logged_in_file")
+}
+get_role() {
+    user=$(cat "$logged_in_file")
+    while IFS=: read -r username hash salt fullname role logged; do
+        if [[ $user = $username ]]; then
+            return
+        fi
+    done <$credentials_file
+}
+
 # After the user is logged in, display a menu for logging out.
 # if the user is also an admin, add an option to create an account using the
 # provided functions.
@@ -186,8 +202,7 @@ logged_in_menu() {
 # Main script execution starts here
 #echo "Welcome to the authentication system."
 get_menu() {
-    if [[ -f "$logged_in_file" ]]
-    then 
+    if [[ -f "$logged_in_file" ]]; then
         logged_in_menu
     else
         menu
